@@ -2,23 +2,13 @@
 
 pacman::p_load(dplyr, sf, ggplot2, sp, stringr, rasterVis)
 
-datatypes <- c("raw_filtered","interpolated")
-# datatypes <- c("raw_filtered","interpolated", "sensitivity_analysis")
+migrid <- readRDS("data/analysis/mig_grid/rawdata_dbbmm_mig_grid_10x10_UD99_18_perc.rds")
 
-# for(y in seq_along(datatypes)){
-datatype <- datatypes[y]
-if(datatype == "interpolated"){
-  migrid <- readRDS("data/analysis/mig_grid/interpolated_mig_grid_10x10_22.rds")
-} else if(datatype == "raw_filtered"){
-  migrid <- readRDS("data/analysis/mig_grid/raw_filtered_mig_grid_10x10_22.rds")
-} else if(datatype == "sensitivity_analysis"){
-  # folder <- "data/sensitivity_analysis/raw_filtered_gpsids/" # data for sensitivity analysis (only GPS data for 2019/2020 data)
-}
-
-# threshold of # of mig routes in a cell to consider it 'high density' 
-thresh <- quantile(na.omit(values(migrid)), .95)
+# % of migration routes passing through a cell to consider it 'high density' 
+thresh <- 25 #%
 
 hidense <- migrid>thresh  
+mapview(hidense)
 
 mpas <- raster::shapefile("data/geodata/WDPA_MPAs_Wafrica_May2021/WDPA_MPAs_Wafrica_May2021_dissolve.shp")
 
@@ -30,9 +20,9 @@ percover <- nrow(subset(cellover, cellover$value>=thresh)) / nrow(subset(cellove
 
 percover
 
+
+
 ## How many MPAs does each turtle pass through during migration? ##
-
-
 datatype <- datatypes[y]
 if(datatype == "interpolated"){
   folder <- "data/analysis/interpolated/" # repository w/ datasets split into periods
