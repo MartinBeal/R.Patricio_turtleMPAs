@@ -16,6 +16,7 @@ periods <- c("internest", "migration", "foraging")
 satnum_filter <- 6
 
 pnts_id_list <- list()
+n_locs_list <- list()
 
 for(i in seq_along(periods)){
   # analyze foraging or migration?
@@ -30,6 +31,11 @@ for(i in seq_along(periods)){
     mutate(
       sensor = ifelse(Argos.Location.Quality == "", "GPS", "Argos doppler shift")
     ) 
+  
+  n_locs_raw <- tracks %>% group_by(ID, sensor) %>% summarise(
+    period = period,
+    n_locs_raw = n()
+  )
   
   ## Remove PTT points of lowest quality  ~~~~~~~~~~~~~~~~~~~~~
   table(tracks$Argos.Location.Quality)
@@ -98,6 +104,19 @@ for(i in seq_along(periods)){
   ## N satellite filter ##
   tracks_f <- filter(tracks_f, SatNum >= satnum_filter | is.na(SatNum))
   
+  ## summarise filtering 
+  n_locs <- tracks_f %>% group_by(ID, sensor) %>% summarise(
+    period = period,
+    n_locs_filter = n()
+  ) %>% right_join(n_locs_raw) %>% 
+    tidyr::pivot_wider(
+      names_from = sensor, values_from = c(n_locs_filter, n_locs_raw)
+  )
+  
+  colnames(n_locs)[3:6] <- c("n_filter_argos", "n_filter_gps", "n_raw_argos", "n_raw_gps")
+  
+  n_locs_list[[i]] <- n_locs
+
   ## check which points were filtered ##
   # tracks_sf <- st_as_sf(tracks, coords = c("Longitude", "Latitude"),
   #                       crs = 4326, agr = "constant")
@@ -127,12 +146,14 @@ for(i in seq_along(periods)){
                id = ID, crs = CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_d"))
   
   ## calculate time step (in days) between each location ##
-  tracks_amt <- tracks_amt %>% 
+  tracks_amt <- do.call(cbind.data.frame,
+                        tracks_amt %>% 
     nest(data = c(x_, y_, t_)) %>% 
     mutate( ts = map(data, function(x){
       c(NA, summarize_sampling_rate(x, time_unit="day", summarize=F))
     })  ) %>% 
     unnest(cols = c(ts, data))
+  )
   
   ts_summ <- summary(tracks_amt$ts) # summ stats of time step intervals
   ts_summ * 24 # in hours
@@ -243,6 +264,21 @@ for(i in seq_along(periods)){
   filename
   # saveRDS(tracks2, filename)
 }
+
+n_locs_df <- rbindlist(n_locs_list) %>% 
+  mutate(
+    n_filter_argos = ifelse(period == "migration", n_raw_argos, n_filter_argos),
+    n_filter_gps = ifelse(period == "migration", n_raw_gps, n_filter_gps)
+  ) %>% group_by(ID) %>% 
+  summarise(
+    n_raw_argos = sum(na.omit(n_raw_argos)),
+    n_raw_gps = sum(na.omit(n_raw_gps)),
+    n_filter_argos = sum(na.omit(n_filter_argos)),
+    n_filter_gps = sum(na.omit(n_filter_gps))
+  )
+
+fwrite(n_locs_df, "data/analysis/summaries/filtering_summary.csv")
+
 
 
 # pnts_id_internest <- pnts_id

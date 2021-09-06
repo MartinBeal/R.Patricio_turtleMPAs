@@ -1,22 +1,14 @@
+## estimate migration routes using dynamic BBMM ## ----------------------------
 
 pacman::p_load(track2KBA, dplyr, sp, ggplot2, raster, mapview)
 
 source("C:\\Users\\Martim Bill\\Documents\\R\\source_scripts\\UD_fxns.R")
 
 
-datatypes <- c("raw_filtered","interpolated")
 
 tictoc::tic()
 
-# for(y in seq_along(datatypes)){
-  datatype <- datatypes[y]
-  if(datatype == "interpolated"){
-    folder <- "data/analysis/interpolated/" # repository w/ datasets split into periods
-  } else if(datatype == "raw_filtered"){
-    folder <- "data/analysis/raw_filtered/" # repository w/ datasets split into periods
-  } else if(datatype == "sensitivity_analysis"){
-    # folder <- "data/sensitivity_analysis/raw_filtered_gpsids/" # data for sensitivity analysis (only GPS data for 2019/2020 data)
-  }
+  folder <- "data/analysis/raw_filtered/" # repository w/ datasets split into periods
   
   satfilt <- "satfilt6"
   
@@ -99,7 +91,7 @@ tictoc::tic()
   plot(GLSdbb_ud)
   
   GLSdbb_ud95 <- GLSdbb_ud
-  GLSdbb_ud95[GLSdbb_ud95 > .95] <- NA
+  GLSdbb_ud95[GLSdbb_ud95 > .99] <- NA
   # GLSdbb_ud95 <- trim(GLSdbb_ud95) # move NAs
   
   GLSdbb_ud95 <- crop(GLSdbb_ud95, aMask)
@@ -127,7 +119,8 @@ tictoc::tic()
   ## count number of overlapping individuals' isopleth areas ------------------
   
   ind_cdf <- split(GLSdbb)
-  UDlevel <- 50
+  n <- length(ind_cdf)
+  UDlevel <- 99
   
   Noverlaps <- lapply(split(GLSdbb), function(x) {
     
@@ -147,7 +140,14 @@ tictoc::tic()
   mapview(comb_cnt)
   
   saveRDS(comb_cnt, 
-          paste0("data/analysis/mig_grid/", datatype, "_dbbmm_mig_grid_10x10_", n, ".rds"))
+          paste0("data/analysis/mig_grid/rawdata_dbbmm_mig_grid_10x10_", 
+                 "UD", UDlevel, "_", n, "_nIDs.rds"))
+  
+  values(comb_cnt) <- (values(comb_cnt)/n)*100
+  
+  saveRDS(comb_cnt, 
+          paste0("data/analysis/mig_grid/rawdata_dbbmm_mig_grid_10x10_", 
+                 "UD", UDlevel, "_", n, "_perc.rds"))
   
 # }
   
