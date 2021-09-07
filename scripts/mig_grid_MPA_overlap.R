@@ -2,7 +2,8 @@
 
 pacman::p_load(dplyr, sf, ggplot2, sp, stringr, rasterVis)
 
-migrid <- readRDS("data/analysis/mig_grid/rawdata_dbbmm_mig_grid_10x10_UD99_18_perc.rds")
+# migrid <- readRDS("data/analysis/mig_grid/rawdata_dbbmm_mig_grid_10x10_UD99_18_perc.rds") ## using 99% UD
+migrid <- readRDS("data/analysis/mig_grid/rawdata_dbbmm_mig_grid_10x10_UD95_18_perc.rds") ## using 95% UD
 
 # % of migration routes passing through a cell to consider it 'high density' 
 thresh <- 25 #%
@@ -15,7 +16,11 @@ mpas <- raster::shapefile("data/geodata/WDPA_MPAs_Wafrica_May2021/WDPA_MPAs_Wafr
 cellover <- extract(migrid, mpas, weights=T, normalizeWeight=F)    
 cellover <- as.data.frame(cellover[1][[1]])  
 
-# percentage of high route-density cells which overlap MPAs
+## range of route density ## 
+range(na.omit(cellover$value))
+(range(na.omit(cellover$value)) / 100) * 18 # n turtles
+
+## percentage of high route-density cells which overlap MPAs #
 percover <- nrow(subset(cellover, cellover$value>=thresh)) / nrow(subset(cellover, cellover$value>=0)) * 100  
 
 percover

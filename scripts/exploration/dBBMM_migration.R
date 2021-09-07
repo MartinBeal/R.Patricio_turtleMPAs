@@ -4,8 +4,6 @@ pacman::p_load(track2KBA, dplyr, sp, ggplot2, raster, mapview)
 
 source("C:\\Users\\Martim Bill\\Documents\\R\\source_scripts\\UD_fxns.R")
 
-
-
 tictoc::tic()
 
   folder <- "data/analysis/raw_filtered/" # repository w/ datasets split into periods
@@ -120,7 +118,7 @@ tictoc::tic()
   
   ind_cdf <- split(GLSdbb)
   n <- length(ind_cdf)
-  UDlevel <- 99
+  UDlevel <- 95
   
   Noverlaps <- lapply(split(GLSdbb), function(x) {
     
