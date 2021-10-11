@@ -219,5 +219,5 @@ for(y in seq_along(datatypes)){
   
   # save #
   filename <- paste0("figures/internest/UDs_internest_", datatype, "_sideby_XX.png")
-  ggsave(plot=comb, filename, width = 12, height=6)  
+  ggsave(plot=comb, filename, width = 12, height=5)  
 }

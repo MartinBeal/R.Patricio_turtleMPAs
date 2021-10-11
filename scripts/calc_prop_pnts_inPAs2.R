@@ -97,61 +97,31 @@ for(y in seq_along(datatypes)){
   
   TD_all <- rbind.data.frame(TD_ll_list[[1]]@data, TD_ll_list[[2]]@data)
   
+  ### Calculating MPA coverage of tracking points in various ways -------------
+  
   ## summarize total points, and proportion of points (including IDs which don't visit at all ##
   gen_summ <- TD_all %>% group_by(period) %>% summarise(
     n_ind   = n_distinct(ID),
-    n_pnts  = n(),              # total number of tracking locations
-    pnts_in_pa = sum(over_PA),     # total number of locations falling w/in any PA
+    n_pnts  = n(),                  # total number of tracking locations
+    pnts_in_pa = sum(over_PA),      # total number of locations falling w/in any PA
     prop_in_pa = pnts_in_pa/n_pnts, # proportion of locations w/in PAs
-    pnts_in_ca = sum(over_CA),     # total number of locations falling w/in any PA
-    prop_in_ca = pnts_in_ca/n_pnts # proportion of locations w/in PAs
+    pnts_in_ca = sum(over_CA),      # total number of locations falling w/in any PA
+    prop_in_ca = pnts_in_ca/n_pnts  # proportion of locations w/in PAs
   )
   
   ## Calculate by foraging area (for foraging period only) ## --------------------
   dest_summ <- TD_all %>% group_by(period, destination) %>% summarise(
     n_ind   = n_distinct(ID),
-    n_pnts  = n(),              # total number of tracking locations
-    pnts_in_pa = sum(over_PA),     # total number of locations falling w/in any PA
+    n_pnts  = n(),                  # total number of tracking locations
+    pnts_in_pa = sum(over_PA),      # total number of locations falling w/in any PA
     prop_in_pa = pnts_in_pa/n_pnts, # proportion of locations w/in PAs
-    pnts_in_ca = sum(over_CA),     # total number of locations falling w/in any PA
-    prop_in_ca = pnts_in_ca/n_pnts # proportion of locations w/in PAs
+    pnts_in_ca = sum(over_CA),      # total number of locations falling w/in any PA
+    prop_in_ca = pnts_in_ca/n_pnts  # proportion of locations w/in PAs
   ) %>% filter(period == "foraging")
   
   ## quick check of points and MPAs for specific region
   # tracks_sf <- TD_ll %>% st_as_sf(crs = 4326, agr = "constant") %>% filter(destination == "Bijagos")
   # mapview(mpas) + mapview::mapview(tracks_sf, col.regions="red") 
-  
-  ## Averages ignoring individual, first removing individuals not using PAs
-  gen_summ2 <- TD_all %>% left_join(id_summ) %>% filter(pnts_in_pa>0) %>% 
-    group_by(period) %>% summarise(
-      n_ind   = n_distinct(ID),
-      n_pnts  = n(),              # total number of tracking locations
-      pnts_in_pa = sum(over_PA),     # total number of locations falling w/in any PA
-      prop_in_pa = pnts_in_pa/n_pnts, # proportion of locations w/in PAs
-      pnts_in_ca = sum(over_CA),     # total number of locations falling w/in any PA
-      prop_in_ca = pnts_in_ca/n_pnts # proportion of locations w/in PAs
-  )
-  
-  gen_summ_jn <- left_join(gen_summ, gen_summ2, by=c("period"))
-  
-  dest_summ2 <- TD_all %>% left_join(id_summ) %>% filter(pnts_in_pa>0) %>% 
-    group_by(period, destination) %>% summarise(
-      n_ind   = n_distinct(ID),
-      n_pnts  = n(),              # total number of tracking locations
-      pnts_in_pa = sum(over_PA),     # total number of locations falling w/in any PA
-      prop_in_pa = pnts_in_pa/n_pnts, # proportion of locations w/in PAs
-      pnts_in_ca = sum(over_CA),     # total number of locations falling w/in any PA
-      prop_in_ca = pnts_in_ca/n_pnts # proportion of locations w/in PAs
-  ) %>% filter(period == "foraging")
-  
-  dest_summ_jn <- left_join(dest_summ, dest_summ2, by=c("period", "destination"))
-  
-  ## save ## ~~~
-  filename <- paste0("data/analysis/summaries/", datatype, "/pnts_in_pa_gen.csv")
-  fwrite(gen_summ_jn, filename)
-  
-  filename <- paste0("data/analysis/summaries/", datatype, "/pnts_in_pa_bydest.csv")
-  fwrite(dest_summ_jn, filename)
   
   ## Averages per individual ## ----------------------------------------------
   ## summarize total points, and proportion of points ##
@@ -226,7 +196,7 @@ for(y in seq_along(datatypes)){
       sd_pnts_in_ca = sd(prop_in_ca),   # including BABR
       m_prop_in_ca  = mean(prop_in_ca),
       sd_prop_in_ca = sd(prop_in_ca)
-  ) %>% filter(period == "foraging")
+    ) %>% filter(period == "foraging")
   
   dest_id_summ_jn <- left_join(dest_id_summ, dest_id_summ2, by=c("period", "destination"))
   
@@ -238,6 +208,38 @@ for(y in seq_along(datatypes)){
   fwrite(gen_id_summ_jn,  filename)
   
   
+  ## ----------------------------------------------
+  ## Averages ignoring individual, first removing individuals not using PAs
+  gen_summ2 <- TD_all %>% left_join(id_summ) %>% filter(pnts_in_pa>0) %>% 
+    group_by(period) %>% summarise(
+      n_ind   = n_distinct(ID),
+      n_pnts  = n(),              # total number of tracking locations
+      pnts_in_pa = sum(over_PA),     # total number of locations falling w/in any PA
+      prop_in_pa = pnts_in_pa/n_pnts, # proportion of locations w/in PAs
+      pnts_in_ca = sum(over_CA),     # total number of locations falling w/in any PA
+      prop_in_ca = pnts_in_ca/n_pnts # proportion of locations w/in PAs
+  )
+  
+  gen_summ_jn <- left_join(gen_summ, gen_summ2, by=c("period"))
+  
+  dest_summ2 <- TD_all %>% left_join(id_summ) %>% filter(pnts_in_pa>0) %>% 
+    group_by(period, destination) %>% summarise(
+      n_ind   = n_distinct(ID),
+      n_pnts  = n(),              # total number of tracking locations
+      pnts_in_pa = sum(over_PA),     # total number of locations falling w/in any PA
+      prop_in_pa = pnts_in_pa/n_pnts, # proportion of locations w/in PAs
+      pnts_in_ca = sum(over_CA),     # total number of locations falling w/in any PA
+      prop_in_ca = pnts_in_ca/n_pnts # proportion of locations w/in PAs
+  ) %>% filter(period == "foraging")
+  
+  dest_summ_jn <- left_join(dest_summ, dest_summ2, by=c("period", "destination"))
+  
+  ## save ## ~~~
+  filename <- paste0("data/analysis/summaries/", datatype, "/pnts_in_pa_gen.csv")
+  fwrite(gen_summ_jn, filename)
+  
+  filename <- paste0("data/analysis/summaries/", datatype, "/pnts_in_pa_bydest.csv")
+  fwrite(dest_summ_jn, filename)
   
   #------------------------------------------------------------------------------#
   ## Sensitivity analysis (2) comparing PTT pnts to GPS pnts for IDs w/ both ##
@@ -284,7 +286,7 @@ for(y in seq_along(datatypes)){
       pnts_in_ca = sum(over_CA),     # total w/in any CONSERVATION AREA
       prop_in_ca = pnts_in_ca/n_pnts # prop. of locations w/in CONSERVATION AREA
     ) 
-    dest_id_summ_s <- id_summ_s2 %>% group_by(period,destination, sensor) %>% summarise(
+    dest_id_summ_s <- id_summ_s %>% group_by(period,destination, sensor) %>% summarise(
       n_ind    = n_distinct(ID),
       tot_pnts  = sum(n_pnts),
       m_pnts  = mean(n_pnts),
@@ -298,7 +300,7 @@ for(y in seq_along(datatypes)){
       m_prop_in_ca  = mean(prop_in_ca),
       sd_prop_in_ca = sd(prop_in_ca)
     ) %>% filter(period == "foraging")
-    dest_id_summ_s2 <- id_summ_s2 %>% filter(pnts_in_pa>0) %>% 
+    dest_id_summ_s2 <- id_summ_s %>% filter(pnts_in_pa>0) %>% 
       group_by(period,destination, sensor) %>% 
       summarise(
         n_ind    = n_distinct(ID),

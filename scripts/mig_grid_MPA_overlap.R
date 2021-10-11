@@ -4,9 +4,11 @@ pacman::p_load(dplyr, sf, ggplot2, sp, stringr, rasterVis)
 
 # migrid <- readRDS("data/analysis/mig_grid/rawdata_dbbmm_mig_grid_10x10_UD99_18_perc.rds") ## using 99% UD
 migrid <- readRDS("data/analysis/mig_grid/rawdata_dbbmm_mig_grid_10x10_UD95_18_perc.rds") ## using 95% UD
+# migrid <- readRDS("data/analysis/mig_grid/rawdata_dbbmm_mig_grid_10x10_UD95_22_perc.rds") ## using 95% UD
 
 # % of migration routes passing through a cell to consider it 'high density' 
 thresh <- 25 #%
+# thresh <- 20 #%
 
 hidense <- migrid>thresh  
 mapview(hidense)
@@ -27,7 +29,7 @@ percover
 
 
 
-## How many MPAs does each turtle pass through during migration? ##
+## How many MPAs does each turtle pass through during migration? ## -----------
 datatype <- datatypes[y]
 if(datatype == "interpolated"){
   folder <- "data/analysis/interpolated/" # repository w/ datasets split into periods
