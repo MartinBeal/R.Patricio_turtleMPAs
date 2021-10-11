@@ -32,7 +32,8 @@ for(y in seq_along(datatypes)){
   
   
   ## Load bathymetry data ~~~~~~~~~~~
-  depth <- raster("data/geodata/ETOPO1.tiff")
+  # depth <- raster("data/geodata/ETOPO1.tiff")
+  depth <- raster("data/geodata/ETOPO1_patchedw_bathyrastPNBA.tif")
   
   ## Load land data ~~~~~~~~~~~~~~~~~
   # land <- rnaturalearth::ne_download(
@@ -41,7 +42,7 @@ for(y in seq_along(datatypes)){
   land <- st_as_sf(land)
   
   ### load MPA polygons ##----------------
-  mpas <- raster::shapefile("data/geodata/WDPA_MPAs_Wafrica_May2021/WDPA_MPAs_Wafrica_May2021_dissolve.shp")
+  # mpas <- raster::shapefile("data/geodata/WDPA_MPAs_Wafrica_May2021/WDPA_MPAs_Wafrica_May2021_dissolve.shp")
   mpas <- raster::shapefile("data/geodata/WDPA_MPAs_Wafrica_May2021/WDPA_MPAs_Wafrica_May2021.shp")
   babr <- raster::shapefile("data/geodata/WDPA_MPAs_Wafrica_May2021/BABR_polygon.shp")
   
@@ -64,13 +65,15 @@ for(y in seq_along(datatypes)){
   
   ## Plot one region at a time ## ~~~~~~~~~~~~~~~~~~~~
   regions <- unique(tracks$destination[tracks$destination!="unknown"])
-
+  
   # xtnt <- st_bbox(tracks)
-  # xtnt <- st_bbox(c(xmin = -16.51626, xmax = -15.02416, ymax = 11.96899, ymin = 10.5), crs = st_crs(4326)) #w/out inset
-  xtnt2 <- st_bbox(c(xmin = -15.93, xmax = -15.49, ymax = 11.11, ymin = 10.75), crs = st_crs(4326)) # if w/ inset
+  xtnt <- st_bbox(c(xmin = -16.51626, xmax = -15.02416, ymax = 11.96899, ymin = 10.5), crs = st_crs(4326)) #w/out inset
+  xtnt2 <- st_bbox(
+    c(xmin = -15.93, xmax = -15.49, ymax = 11.11, ymin = 10.75), 
+    crs = st_crs(4326)) # if w/ inset
   
   regtrcks <- tracks %>% st_as_sf(coords = c("Longitude", "Latitude"), 
-                                                                 crs = 4326, agr = "constant") # spatialize TD
+                                  crs = 4326, agr = "constant") # spatialize TD
   
   # if(one == "Bijagos"){ 
   depth_crp <- crop(depth, extent(xtnt[1]-.25, xtnt[3]+.1, xtnt[2],xtnt[4]))
@@ -112,15 +115,19 @@ for(y in seq_along(datatypes)){
       data=mpas, inherit.aes = FALSE, aes(linetype="solid"), color="black", size=1, fill=NA, show.legend = "line") +
     geom_sf(
       data=babr, inherit.aes = FALSE, aes(linetype="dashed"), color="black",  size=1, fill=NA, show.legend = "line") +
-    geom_sf(data = regtrcks, color="black", alpha=0.025, size=0.25, inherit.aes = FALSE) +
+    geom_sf(
+      data = regtrcks, color="black", alpha=0.025, size=0.25, inherit.aes = FALSE) +
+    geom_sf(
+      data=bbox_poly, inherit.aes = FALSE, color="red3", size=1, fill=NA) + ## inset bbox polygon
     geom_sf(
       data = poilao, inherit.aes = FALSE, fill="gold1", color="black", size = 2.5, stroke=1.5, shape=23) +
-    geom_sf_label(data = poilao, aes(label = label), inherit.aes = FALSE, nudge_x = .15) +
-    geom_sf(data = land, inherit.aes = FALSE, fill="grey65", colour="grey40") +
+    geom_sf_label(
+      data = poilao, aes(label = label), inherit.aes = FALSE, nudge_x = .15) +
     geom_sf(
-      data=bbox_poly, inherit.aes = FALSE, color="red3",  size=1, fill=NA) + ## inset bbox polygon
+      data = land, inherit.aes = FALSE, fill="grey65", colour="grey40") +
     coord_sf(
       xlim = c(xtnt[1]-.25, xtnt[3]+.1), ylim = c(xtnt[2], xtnt[4]), expand = F) + 
+    scale_y_continuous(breaks = seq(10.6, 11.8, by = .4)) +
     scale_linetype_identity(
       name = NULL,
       breaks = c("solid", "dashed"),
@@ -128,23 +135,26 @@ for(y in seq_along(datatypes)){
       guide = "legend") +
     theme(
       # legend.position = c(1.125, .5),
+      plot.margin = unit(c(0,0,0,0), "cm"),
       legend.background = element_rect(fill=NA, colour=NA),
       panel.background=element_rect(fill="white", colour="black"),
       panel.border = element_rect(colour = "black", fill=NA, size=1),
-      axis.text=element_text(size=12, color="black"),
-      axis.title=element_text(size=16)) +
+      legend.text = element_text(size=16, color="black"),
+      legend.title = element_text(size=16, color="black"),
+      axis.text = element_text(size=16, color="black"),
+      axis.title=element_blank()
+    ) +
     guides(
       linetype = guide_legend(keywidth = unit(2,"line")),
       fill = guide_legend(override.aes = list(linetype = 0))
     ) +
-    ylab("") +
-    xlab("") +
-    ggspatial::annotation_scale(style="ticks", height=unit(0.5, "cm"), text_cex = 1)
-  # map
-
+    ggspatial::annotation_scale(
+      style="ticks", height=unit(0.5, "cm"), text_cex = 1.35)
+  map
+  
   ## Save ##
-  filename <- paste0("figures/internest_", datatype, "X.png")
-  ggsave(filename, plot=map, width = 9, height=7 )
+  # filename <- paste0("figures/internest/internest_", datatype, "X.png")
+  # ggsave(filename, plot=map, width = 9, height=7 )
   
   ### Create inset zoomed in on Poilao ###
   
@@ -160,7 +170,7 @@ for(y in seq_along(datatypes)){
     geom_sf(data = regtrcks, color="black", alpha=0.025, size=0.25, inherit.aes = FALSE) +
     geom_sf(
       data = poilao, inherit.aes = FALSE, fill="gold1", color="black", size = 2.5, stroke=1.5, shape=23) +
-    geom_sf_label(data = poilao, aes(label = label), inherit.aes = FALSE, nudge_x = .15) +
+    geom_sf_label(data = poilao, aes(label = label), inherit.aes = FALSE, nudge_x = .05) +
     geom_sf(data = land, inherit.aes = FALSE, fill="grey65", colour="grey40") +
     coord_sf(
       xlim = c(xtnt2[1], xtnt2[3]), ylim = c(xtnt2[2], xtnt2[4]), expand = F) +
@@ -175,31 +185,39 @@ for(y in seq_along(datatypes)){
       # legend.background = element_rect(fill=NA, colour=NA),
       panel.background=element_rect(fill=NA, colour=NA),
       plot.background=element_rect(fill=NA, colour=NA),
-      panel.border = element_rect(colour = "red3", fill=NA, size=1.5),
+      panel.border = element_rect(colour = "red3", fill=NA, size=2),
+      # axis.text=element_text(size=16, color="black"),
       axis.text=element_blank(),
       axis.title=element_blank(),
-      axis.ticks=element_blank()) +
+      axis.ticks=element_blank()
+    ) +
     # guides(
     #   linetype = guide_legend(keywidth = unit(2,"line")),
     #   fill = guide_legend(override.aes = list(linetype = 0))
     # ) +
-    ylab("") +
-    xlab("") +
-    ggspatial::annotation_scale(style="ticks", height=unit(0.5, "cm"), text_cex = 1)
+    ggspatial::annotation_scale(
+      style="ticks", 
+      height=unit(0.5, "cm"), 
+      text_cex = 1.35)
   
-  inmap
+  # inmap
   
   ## Combine maps ##
   library(patchwork)
   
   # comb <- map + inset_element(inmap,  0.7, 0, 1, .5, align_to = 'panel')
   # comb <- map + inset_element(inmap,  0, 0, .3, .5, align_to = 'panel')
-  comb <- map + inset_element(inmap,   0.6, 0.6, 1, 1, align_to = 'plot')
-  comb$patches$layout$widths  <- 1
-  comb$patches$layout$heights <- 1
-  comb
+  # comb <- map + inset_element(inmap,   0.6, 0.6, 1, 1, align_to = 'plot')
+  # comb$patches$layout$widths  <- 1
+  # comb$patches$layout$heights <- 1
+  # comb
+  
+  comb <- map + inmap + 
+    plot_layout(guides="collect") + 
+    plot_annotation(tag_levels = 'A') & 
+    theme(plot.tag = element_text(size = 28))
   
   # save #
-  filename <- paste0("figures/UDs_internest_", datatype, "_winset_X.png")
-  ggsave(plot=comb, filename, width = 9, height=7)  
+  filename <- paste0("figures/internest/UDs_internest_", datatype, "_sideby_XX.png")
+  ggsave(plot=comb, filename, width = 12, height=6)  
 }
