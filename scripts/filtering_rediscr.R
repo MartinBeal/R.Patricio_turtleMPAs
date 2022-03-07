@@ -227,12 +227,12 @@ for(i in seq_along(periods)){
   ## raw, filtered data ##
   filename <- paste0(folder, "/raw_filtered/", period, "_", "satfilt", satnum_filter, ".rds")
   filename
-  # saveRDS(tracks_f, filename)
+  saveRDS(tracks_f, filename)
   
   ## interpolated data ##
   filename <- paste0(folder, "/interpolated/", period, "_", "satfilt", satnum_filter,".rds")
   filename
-  # saveRDS(tracks_re, filename)
+  saveRDS(tracks_re, filename)
   
   ## summarise filtering ## 
   
@@ -262,14 +262,16 @@ for(i in seq_along(periods)){
   ## raw, filtered data (only GPS for IDs from 2019/20) ##
   filename <- paste0("data/sensitivity_analysis/raw_filtered_gpsids/", period, "_", "satfilt", satnum_filter, ".rds")
   filename
-  # saveRDS(tracks2, filename)
+  saveRDS(tracks2, filename)
 }
 
-n_locs_df <- rbindlist(n_locs_list) %>% 
+n_locs_df_period <- rbindlist(n_locs_list) %>% 
   mutate(
     n_filter_argos = ifelse(period == "migration", n_raw_argos, n_filter_argos),
     n_filter_gps = ifelse(period == "migration", n_raw_gps, n_filter_gps)
-  ) %>% group_by(ID) %>% 
+  ) 
+
+n_locs_df <- n_locs_df_period %>% group_by(ID) %>% 
   summarise(
     n_raw_argos = sum(na.omit(n_raw_argos)),
     n_raw_gps = sum(na.omit(n_raw_gps)),
@@ -277,8 +279,9 @@ n_locs_df <- rbindlist(n_locs_list) %>%
     n_filter_gps = sum(na.omit(n_filter_gps))
   )
 
+## Save 
+fwrite(n_locs_df_period, "data/analysis/summaries/filtering_summary_by_period.csv")
 fwrite(n_locs_df, "data/analysis/summaries/filtering_summary.csv")
-
 
 
 # pnts_id_internest <- pnts_id

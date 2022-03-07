@@ -45,7 +45,8 @@ for(y in seq_along(datatypes)){
   
   ## load bathymetry data ##
   # depth <- raster("data/geodata/GEBCO_2020_W Africa/gebco_2020_n20.9_s10.1_w-18.9_e-14.8.tif")
-  depth     <- raster("data/geodata/ETOPO1.tiff")
+  depth     <- raster("data/geodata/ETOPO1.tiff") # original ETOPO
+  # depth     <- raster("data/geodata/ETOPO1_patchedw_bathyrastPNBA.tif") # ETOPO + soundins in MAU
   depth_prj <- projectRaster(depth, crs=prj)
   # nodepthzone <- raster::shapefile("data/geodata/Bathy_BA/no_depth_info_zone.shp")
   
@@ -156,6 +157,7 @@ for(y in seq_along(datatypes)){
   
   mpas <- st_as_sf(mpas) %>% st_transform(crs=proj4string(TD_prj))
   babr <- st_as_sf(babr) %>% st_transform(crs=proj4string(TD_prj))
+  
   ## take minimum avg across individuals as maximum depth
   # maxdepth <- crss_ind$min_mn # points
   maxdepth <- crss_ind$min_min # points

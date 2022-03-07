@@ -13,22 +13,51 @@ thresh <- 25 #%
 hidense <- migrid>thresh  
 mapview(hidense)
 
-mpas <- raster::shapefile("data/geodata/WDPA_MPAs_Wafrica_May2021/WDPA_MPAs_Wafrica_May2021_dissolve.shp")
+hi_tf <- hidense
+hi_tf[values(hi_tf)<=0] <- NA
+
+## just MPAs ## ---------------------------------------------------
+# mpas <- raster::shapefile("data/geodata/WDPA_MPAs_Wafrica_May2021/WDPA_MPAs_Wafrica_May2021_dissolve.shp") #w/out goree
+mpas <- raster::shapefile("data/geodata/WDPA_MPAs_Wafrica_May2021/WDPA_MPAs_Wafrica_Nov2021_dissolve.shp") #w/ goree
 
 cellover <- extract(migrid, mpas, weights=T, normalizeWeight=F)    
 cellover <- as.data.frame(cellover[1][[1]])  
 
-## range of route density ## 
-range(na.omit(cellover$value))
-(range(na.omit(cellover$value)) / 100) * 18 # n turtles
+range(na.omit(cellover$value)) # range of route density in MPAs 
+(range(na.omit(cellover$value)) / 100) * 18 # range of turtles in MPAs
 
-## percentage of high route-density cells which overlap MPAs #
-percover <- nrow(subset(cellover, cellover$value>=thresh)) / nrow(subset(cellover, cellover$value>=0)) * 100  
+## get hi dense cells that fall w/in MPA polygons
+cellover_hi <- extract(hi_tf, mpas, weights=T, normalizeWeight=F)    
+cellover_hi <- as.data.frame(cellover_hi[1][[1]])  
 
-percover
+## total number of hi density cells # 
+n_cells_hi <- sum(na.omit(values(hi_tf) == TRUE))
+
+## number of hi density cells W/IN MPAs #
+n_mpa <- sum(na.omit(cellover_hi$value))
+
+## percentage of hi density cells in MPAs ## 
+perccover_mpa <- n_mpa / n_cells_hi * 100
+perccover_mpa
+
+## BABR included ## ---------------------------------------------------
+babr <- raster::shapefile("data/geodata/WDPA_MPAs_Wafrica_May2021/BABR_polygon.shp")
+
+cons_areas <- aggregate(rbind(mpas[,-c(31:32)], babr))
+
+## get hi dense cells that fall w/in MPA polygons
+cellover_hi_ca <- extract(hi_tf, cons_areas, weights=T, normalizeWeight=F)    
+cellover_hi_ca <- as.data.frame(cellover_hi_ca[1][[1]])  
+
+## number of hi density cells W/IN MPAs #
+n_babr <- sum(na.omit(cellover_hi_ca$value))
+
+## percentage of hi density cells in MPAs ## 
+perccover_babr <- n_babr / n_cells_hi * 100
+perccover_babr
 
 
-
+# -----------------------------------------------------------------------------
 ## How many MPAs does each turtle pass through during migration? ## -----------
 datatype <- datatypes[y]
 if(datatype == "interpolated"){
@@ -82,4 +111,4 @@ ind_summ <- TD@data %>% group_by(ID) %>% summarise(
 ## % of individuals which do not pass through an MPA on their way to the foraging grounds
 sum(ind_summ$visit_mpa == F)/n_distinct(ind_summ$ID) * 100
 
-mapview(subset(TD, TD$ID %in% c("182459", "205282", "205277", "205288", "60886", "60890", "60893", "60898")))
+# mapview(subset(TD, TD$ID %in% c("182459", "205282", "205277", "205288", "60886", "60890", "60893", "60898")))

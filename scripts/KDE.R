@@ -7,6 +7,7 @@ datatypes <- c("raw_filtered","interpolated")
 
 ## Data input ~~~~~~~~~~~~~~~~~~
 for(y in seq_along(datatypes)){
+  print(paste("y", "==", y))
   datatype <- datatypes[y]
   if(datatype == "interpolated"){
     folder <- "data/analysis/interpolated/" # repository w/ datasets split into periods
@@ -45,7 +46,7 @@ for(y in seq_along(datatypes)){
         poilao <- data.frame(label="Poilão", "Longitude" = -15.725273, "Latitude" = 10.870530)
         poilao <- st_as_sf(poilao, coords = c("Longitude", "Latitude"), crs = 4326, agr = "constant")
         
-        poilao_buff <- poilao %>% st_transform(crs = TD@proj4string) %>% st_buffer(dist = 700) # 700m buffer from island center
+        poilao_buff <- poilao %>% st_transform(crs = TD@proj4string) %>% st_buffer(dist = 200) # 700m buffer from island center
         
         idxs <- TD %>% st_as_sf() %>% st_within(poilao_buff)
         inside <- apply(idxs, 1, any)
@@ -66,11 +67,12 @@ for(y in seq_along(datatypes)){
       KDE  <- estSpaceUse(TD, scale=h, polyOut=F, res = cres)
       UD50 <- estSpaceUse(TD, scale=h, polyOut=T, levelUD = 50, res = cres)
       UD95 <- estSpaceUse(TD, scale=h, polyOut=T, levelUD = 95, res = cres)
-      mapKDE(UD50$UDPolygons)
-      mapKDE(UD95$UDPolygons)
+      # mapKDE(UD50$UDPolygons)
+      # mapKDE(UD95$UDPolygons)
       
-      
-      # represent <- repAssess(TD, KDE, iteration=100, nCores=2, levelUD = 50, avgMethod = "mean", bootTable = F)
+      ## assess representativeness of data ##
+      # represent <- repAssess(TD, KDE, iteration=200, nCores=2, levelUD = 50, 
+      #                        avgMethod = "mean", bootTable = F)
       
       ## Save ## ------------------------------------------------------------------
       saveRDS(KDE,  
@@ -94,21 +96,55 @@ for(y in seq_along(datatypes)){
       nlayers(KDEraster)
       n_distinct(tracks$ID)
       
-      id_w_kde <- unique(TD$ID)[validNames(unique(TD$ID)) %in% names(KDEraster)]
+      ## calculate weighted average KDEs per destination for foraging data
+      # per dest. so that Mauritania doesn't reduce importance of sites at other locales
       
-      # weighted mean - number of points per ID -------------------------------
-      weights <- tracks %>% 
-        dplyr::filter(ID %in% id_w_kde) %>%
-        group_by(ID) %>% summarise(n_pnts = n()) %>% pull(n_pnts)
-      KDEcmbnd_w <- raster::weighted.mean(KDEraster, w=weights)   
-      # arithmetic mean - all individuals equally weighted --------------------
+      if(period == "foraging") {
+        KDEcmbnd_w_list <- list()
+        
+        for(q in seq_len(n_distinct(TD$destination))) {
+          print(paste("q", "==", q))
+          
+          dest <- unique(tracks$destination)[q]
+          
+          if(dest == "unknown") {next}
+          
+          tracks_dest <- tracks %>% 
+            filter(destination == dest)
+          
+          id_w_kde <- unique(tracks_dest$ID)[validNames(unique(tracks_dest$ID)) %in% names(KDEraster)]
+          
+          weights <- tracks_dest %>%
+            dplyr::filter(ID %in% id_w_kde) %>%
+            group_by(ID) %>% summarise(n_pnts = n()) %>% pull(n_pnts)
+          
+          # weighted mean - number of points per ID -------------------------------
+          dest_KDErast <- subset(KDEraster, validNames(id_w_kde))
+          
+          KDEcmbnd_w_list[[q]] <- raster::weighted.mean(dest_KDErast, w=weights)   
+          
+        }
+        
+        ## combine weighted results (non-overlapping so this shouldn't change values)
+        KDEcmbnd_w <- raster::calc(stack(KDEcmbnd_w_list), mean) 
+      } else if (period == "internest") {
+        id_w_kde <- unique(TD$ID)[validNames(unique(TD$ID)) %in% names(KDEraster)]
+        # weighted mean - number of points per ID -------------------------------
+        weights <- tracks %>%
+          dplyr::filter(ID %in% id_w_kde) %>% 
+          group_by(ID) %>% summarise(n_pnts = n()) %>% pull(n_pnts)
+        KDEcmbnd_w <- raster::weighted.mean(KDEraster, w=weights)   
+        # arithmetic mean - all individuals equally weighted --------------------
+      }
+      
+      ## equal weights per ID
       KDEcmbnd_a <- raster::calc(KDEraster, mean) # arithmetic mean
       
       ## compare ##
       # dev.new()
-      plot(KDEcmbnd_w)
+      # sp::plot(KDEcmbnd_w)
       # dev.new()
-      plot(KDEcmbnd_a)
+      # sp::plot(KDEcmbnd_a)
       
       ## Save ## --------------------------------------------------------------
       saveRDS(KDEcmbnd_w, 
@@ -124,43 +160,49 @@ for(y in seq_along(datatypes)){
       # KDEcmbnd_a <- readRDS(paste0("data/analysis/UDs/a_groupUD_h", h, "_c",  cres, "_", period, ".rds"))
       
       ### Convert UD in PMF form to CMF (i.e. to % UD) ### -------------------------
-      CUD <- KDEcmbnd_w
-      # CUD <- KDEcmbnd_a
-      
-      pixArea <- raster::res(CUD)[1]
-      levelUD <- c(50, 95)
-      
-      percUDs <- lapply(1:2, function(x) {
-        lvl <- levelUD[x]
-        df <- data.frame(UD = raster::getValues(CUD)) %>%
-          mutate(
-            rowname = seq_len(length(raster::getValues(CUD))),
-            usage = .data$UD * (pixArea^2)
-          ) %>%
-          arrange(desc(.data$usage)) %>%
-          mutate(cumulUD = cumsum(.data$usage),
-                 INSIDE = ifelse(.data$cumulUD < (lvl/100), 1, NA)
-          ) %>%
-          arrange(.data$rowname) %>%
-          dplyr::select(.data$INSIDE)
-        CUD[] <- df$INSIDE
+      kdelist <- list(KDEcmbnd_w, KDEcmbnd_a)
+      for(t in 1:2){
         
-        return(CUD)
-      })
-      
-      names(percUDs) <- levelUD
-      
-      plot(percUDs[[1]])
-      plot(percUDs[[2]])
-      
-      
-      ## Save ## --------------------------------------------------------------------
-      saveRDS(percUDs, 
-              paste0(paste0("data/analysis/UDs/", datatype, "/CDF", "/w_groupCDFs_h"), 
-                     h, "_c",  cres, "_", period, ".rds"))
-      
-      saveRDS(percUDs, 
-              paste0(paste0("data/analysis/UDs/", datatype, "/CDF", "/a_groupCDFs_h"), 
-                            h, "_c",  cres, "_", period, ".rds"))
+        CUD <- kdelist[[t]]
+
+        pixArea <- raster::res(CUD)[1]
+        levelUD <- c(50, 95)
+        
+        percUDs <- lapply(1:2, function(x) {
+          lvl <- levelUD[x]
+          df <- data.frame(UD = raster::getValues(CUD)) %>%
+            mutate(
+              rowname = seq_len(length(raster::getValues(CUD))),
+              usage = .data$UD * (pixArea^2)
+            ) %>%
+            arrange(desc(.data$usage)) %>%
+            mutate(cumulUD = cumsum(.data$usage),
+                   INSIDE = ifelse(.data$cumulUD < (lvl/100), 1, NA)
+            ) %>%
+            arrange(.data$rowname) %>%
+            dplyr::select(.data$INSIDE)
+          CUD[] <- df$INSIDE
+          
+          return(CUD)
+        })
+        
+        names(percUDs) <- levelUD
+        
+        sp::plot(percUDs[[1]])
+        sp::plot(percUDs[[2]])
+        
+        
+        ## Save ## --------------------------------------------------------------------
+        if(t == 1){
+          saveRDS(percUDs, 
+                  paste0(paste0("data/analysis/UDs/", datatype, "/CDF", "/w_groupCDFs_h"), 
+                         h, "_c",  cres, "_", period, ".rds")) 
+        } else if(t==2){
+          saveRDS(percUDs, 
+                  paste0(paste0("data/analysis/UDs/", datatype, "/CDF", "/a_groupCDFs_h"), 
+                         h, "_c",  cres, "_", period, ".rds"))
+        }
+      }
+
   }
 }

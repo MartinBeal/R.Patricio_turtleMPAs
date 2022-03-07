@@ -97,6 +97,11 @@ for(y in seq_along(datatypes)){
   
   TD_all <- rbind.data.frame(TD_ll_list[[1]]@data, TD_ll_list[[2]]@data)
   
+  ## remove PA overlap of two individuals which barely overlap due to error
+  TD_all$over_PA <- ifelse(TD_all$ID %in% c("197138", "182453"), 
+                           FALSE, TD_all$over_PA)
+  TD_all$over_CA <- ifelse(TD_all$ID %in% c("197138", "182453"), 
+                           FALSE, TD_all$over_CA)
   ### Calculating MPA coverage of tracking points in various ways -------------
   
   ## summarize total points, and proportion of points (including IDs which don't visit at all ##
@@ -132,6 +137,7 @@ for(y in seq_along(datatypes)){
     pnts_in_ca = sum(over_CA),     # total w/in any CONSERVATION AREA
     prop_in_ca = pnts_in_ca/n_pnts # prop. of locations w/in CONSERVATION AREA
   ) 
+  
   ## averages for all IDs
   gen_id_summ <- id_summ %>% group_by(period) %>% summarise(
     n_ind    = n_distinct(ID),
@@ -156,11 +162,15 @@ for(y in seq_along(datatypes)){
     m_pnts_in_pa  = mean(pnts_in_pa), # Protected areas only
     sd_pnts_in_pa = sd(prop_in_pa),
     m_prop_in_pa  = mean(prop_in_pa),
+    max_prop_in_pa = max(prop_in_pa),
+    min_prop_in_pa = min(prop_in_pa),
     sd_prop_in_pa = sd(prop_in_pa),
     m_pnts_in_ca  = mean(pnts_in_ca), # all conservation areas
     sd_pnts_in_ca = sd(prop_in_ca),   # including BABR
     m_prop_in_ca  = mean(prop_in_ca),
-    sd_prop_in_ca = sd(prop_in_ca)
+    sd_prop_in_ca = sd(prop_in_ca),
+    max_prop_in_ca = max(prop_in_ca),
+    min_prop_in_ca = min(prop_in_ca),
   )
   
   gen_id_summ_jn <- left_join(gen_id_summ, gen_id_summ2, by=c("period"))
@@ -201,6 +211,9 @@ for(y in seq_along(datatypes)){
   dest_id_summ_jn <- left_join(dest_id_summ, dest_id_summ2, by=c("period", "destination"))
   
   ## save ## ~~~
+  filename <- paste0("data/analysis/summaries/", datatype, "/pnts_in_pa_id.csv")
+  fwrite(id_summ, filename)
+  
   filename <- paste0("data/analysis/summaries/", datatype, "/pnts_in_pa_byiddest.csv")
   fwrite(dest_id_summ_jn, filename)
   

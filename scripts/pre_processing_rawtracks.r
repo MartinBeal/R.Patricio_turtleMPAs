@@ -16,11 +16,26 @@ files <- list.files("data/tracks/combined_tracks", full.names = T)
 rawdata <- rbindlist(
   lapply(seq_along(files), function(x) {
     print(x)
-    one <- fread(files[x]) %>% dplyr::select(
-      Tag_ID, Latitude, Longitude, UTC_Date, UTC_Time, "Location Quality", HDOP, "SatNum")
+    one <- fread(files[x]) 
     
-    one <- mutate(one, 
-                  UTC_Date = as.Date(UTC_Date, tryFormats = c("%Y-%m-%d", "%d/%m/%Y")))
+    if("[ErrorRadius (m), SemiMajor (m), SemiMinor (m), Orientation ]" %in% colnames(one)){
+      xx <- str_split(
+        str_remove(one$`[ErrorRadius (m), SemiMajor (m), SemiMinor (m), Orientation ]`, 
+                   pattern = "]") %>% 
+          str_remove(pattern = fixed("[")), ", ")
+      
+      one$argos_error_radius <- as.numeric(do.call(rbind, lapply(xx, function(x) x[1])))
+    } else {
+      one$argos_error_radius <- rep(NA) 
+    }
+
+    one <- one %>% 
+      dplyr::select(
+        Tag_ID, Latitude, Longitude, 
+        UTC_Date, UTC_Time, 
+        "Location Quality", HDOP, "SatNum", "argos_error_radius") %>% 
+      mutate(
+        UTC_Date = as.Date(UTC_Date, tryFormats = c("%Y-%m-%d", "%d/%m/%Y")))
     
     return(one)
   })
@@ -162,7 +177,7 @@ for(i in 1:n_distinct(tracks$ID)){
 #   n_forage=do.call(rbind, lapply(forage_list, function(x) nrow(x)))
 # )
 
-tracks_i <- do.call(rbind, internest_list) %>% filter(!is.na(Latitude)) # migration period
+tracks_i <- do.call(rbind, internest_list) %>% filter(!is.na(Latitude)) # internesting period
 tracks_m <- do.call(rbind, migrate_list)   %>% filter(!is.na(Latitude)) # migration period
 tracks_f <- do.call(rbind, forage_list )   %>% filter(!is.na(Latitude)) # foraing period 
 

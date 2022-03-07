@@ -22,10 +22,12 @@ land <- st_as_sf(land) %>% st_transform(crs=prj)
 
 ### load MPA polygons ##----------------
 # mpas <- raster::shapefile("data/geodata/WDPA_MPAs_Wafrica_May2021/WDPA_MPAs_Wafrica_May2021_dissolve.shp")
-mpas <- raster::shapefile("data/geodata/WDPA_MPAs_Wafrica_May2021/WDPA_MPAs_Wafrica_May2021.shp")
+# mpas <- raster::shapefile("data/geodata/WDPA_MPAs_Wafrica_May2021/WDPA_MPAs_Wafrica_May2021.shp")
+mpas <- raster::shapefile("data/geodata/WDPA_MPAs_Wafrica_May2021/WDPA_MPAs_Wafrica_Nov2021_noBoba.shp")
 babr <- raster::shapefile("data/geodata/WDPA_MPAs_Wafrica_May2021/BABR_polygon.shp")
 
-mpas <- st_as_sf(mpas)
+mpas <- st_as_sf(mpas) %>% 
+  filter(!NAME %in% c("Banc dÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢Arguin", "Banc d'Arguin"))
 babr <- st_as_sf(babr)
 
 # xtnt <- extent(migrid)

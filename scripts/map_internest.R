@@ -43,7 +43,7 @@ for(y in seq_along(datatypes)){
   
   ### load MPA polygons ##----------------
   # mpas <- raster::shapefile("data/geodata/WDPA_MPAs_Wafrica_May2021/WDPA_MPAs_Wafrica_May2021_dissolve.shp")
-  mpas <- raster::shapefile("data/geodata/WDPA_MPAs_Wafrica_May2021/WDPA_MPAs_Wafrica_May2021.shp")
+  mpas <- raster::shapefile("data/geodata/WDPA_MPAs_Wafrica_May2021/WDPA_MPAs_Wafrica_Nov2021_noBoba.shp")
   babr <- raster::shapefile("data/geodata/WDPA_MPAs_Wafrica_May2021/BABR_polygon.shp")
   
   mpas <- st_as_sf(mpas)
@@ -60,8 +60,11 @@ for(y in seq_along(datatypes)){
   # mapview::mapview(UD95p) + mapview::mapview(UD50p, col.regions="red")
   
   ## location of Poilão
-  poilao <- data.frame(label="Poilão", "Longitude" = -15.726667, "Latitude" = 10.864722)
-  poilao <- st_as_sf(poilao, coords = c("Longitude", "Latitude"), crs = 4326, agr = "constant")
+  poilao_meio <- data.frame(label=c("Poilão", "Meio"), 
+                            "Longitude" = c(-15.726667, -15.666024), 
+                            "Latitude" = c(10.864722, 10.976397)
+  )
+  poilao_meio <- st_as_sf(poilao_meio, coords = c("Longitude", "Latitude"), crs = 4326, agr = "constant")
   
   ## Plot one region at a time ## ~~~~~~~~~~~~~~~~~~~~
   regions <- unique(tracks$destination[tracks$destination!="unknown"])
@@ -112,19 +115,19 @@ for(y in seq_along(datatypes)){
     ggnewscale::new_scale_fill() + 
     geom_sf(data=UDs, aes(fill=UD), inherit.aes = FALSE, color=NA) +
     geom_sf(
-      data=mpas, inherit.aes = FALSE, aes(linetype="solid"), color="black", size=1, fill=NA, show.legend = "line") +
-    geom_sf(
-      data=babr, inherit.aes = FALSE, aes(linetype="dashed"), color="black",  size=1, fill=NA, show.legend = "line") +
-    geom_sf(
       data = regtrcks, color="black", alpha=0.025, size=0.25, inherit.aes = FALSE) +
     geom_sf(
       data=bbox_poly, inherit.aes = FALSE, color="red3", size=1, fill=NA) + ## inset bbox polygon
     geom_sf(
-      data = poilao, inherit.aes = FALSE, fill="gold1", color="black", size = 2.5, stroke=1.5, shape=23) +
-    geom_sf_label(
-      data = poilao, aes(label = label), inherit.aes = FALSE, nudge_x = .15) +
-    geom_sf(
       data = land, inherit.aes = FALSE, fill="grey65", colour="grey40") +
+    geom_sf(
+      data=mpas, inherit.aes = FALSE, aes(linetype="solid"), color="black", size=1, fill=NA, show.legend = "line") +
+    geom_sf(
+      data=babr, inherit.aes = FALSE, aes(linetype="dashed"), color="black",  size=1, fill=NA, show.legend = "line") +
+    geom_sf(
+      data = poilao_meio, inherit.aes = FALSE, fill="gold1", color="black", size = 2.5, stroke=1.5, shape=23) +
+    # geom_sf_label(
+    #   data = poilao_meio, aes(label = label), inherit.aes = FALSE, nudge_x = .15) +
     coord_sf(
       xlim = c(xtnt[1]-.25, xtnt[3]+.1), ylim = c(xtnt[2], xtnt[4]), expand = F) + 
     scale_y_continuous(breaks = seq(10.6, 11.8, by = .4)) +
@@ -168,10 +171,10 @@ for(y in seq_along(datatypes)){
     geom_sf(
       data=babr, inherit.aes = FALSE, aes(linetype="dashed"), color="black",  size=1, fill=NA, show.legend = "line") +
     geom_sf(data = regtrcks, color="black", alpha=0.025, size=0.25, inherit.aes = FALSE) +
-    geom_sf(
-      data = poilao, inherit.aes = FALSE, fill="gold1", color="black", size = 2.5, stroke=1.5, shape=23) +
-    geom_sf_label(data = poilao, aes(label = label), inherit.aes = FALSE, nudge_x = .05) +
     geom_sf(data = land, inherit.aes = FALSE, fill="grey65", colour="grey40") +
+    geom_sf(
+      data = poilao_meio, inherit.aes = FALSE, fill="gold1", color="black", size = 2.5, stroke=1.5, shape=23) +
+    geom_sf_label(data = poilao_meio, aes(label = label), inherit.aes = FALSE, nudge_x = .05, alpha=.65) +
     coord_sf(
       xlim = c(xtnt2[1], xtnt2[3]), ylim = c(xtnt2[2], xtnt2[4]), expand = F) +
     scale_linetype_identity(

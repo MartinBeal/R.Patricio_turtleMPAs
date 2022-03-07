@@ -1,4 +1,5 @@
 ### Produce gridded density raster of proportion of migrating individuals passing through certain areas ### 
+# proportion estimated from simple overlap of raw or interpolated points
 
 ### estimate proportion of positions within and outside MPAs ##----------------
 

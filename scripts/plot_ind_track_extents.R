@@ -67,12 +67,14 @@ for(y in seq_along(datatypes)){
   #   make_track(.x=x, .y=y, .t=date,
   #              id = id, crs = CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_d"), all_cols = F)
   ## calculate time step (in days) between each location ##
-  tracks_amt <- tracks_amt %>% 
-    nest(data = c(x_, y_, t_)) %>% 
-    mutate( ts = map(data, function(x){
-      c(NA, summarize_sampling_rate(x, time_unit="day", summarize=F))
-    })  ) %>% 
-    unnest(cols = c(ts, data))
+  tracks_amt <- do.call(rbind, 
+                  lapply(split(tracks_amt, tracks_amt$id), function(x){
+                    xy <- x %>% mutate( 
+                      ts =  c(NA, summarize_sampling_rate(x, time_unit="day", summarize=F))  
+                    )
+                    return(xy)
+                  })
+  )
   
   ts_summ <- summary(tracks_amt$ts) # summ stats of time step intervals
   ts_summ * 24 # in hours
@@ -129,15 +131,34 @@ for(y in seq_along(datatypes)){
   one$ID <- as.factor(one$ID)
   one$stage <- factor(one$stage, levels=c("internesting", "migration", "foraging"))
   one$doy <- yday(one$DateTime)
-  one$doy2 <- ifelse(one$doy>182, one$doy - 182, one$doy + 182)
+  one$doy2 <- ifelse(one$doy > 182, one$doy - 182, one$doy + 182)
   
   one <- one %>% group_by(ID) %>% arrange(doy2)
+  
+  ## filter out two bad (time) points for 60893
+  one$year <- year(one$DateTime)
+  oneid <- filter(one, ID == "60893" & year != "2019")
+  one <- filter(one, ID != "60893")
+  one <- one %>% bind_rows(oneid) %>% 
+    arrange(ID, DateTime)
+  ## and for 182461 
+  oneid <- filter(one, ID == "182461" & year != "2020")
+  one <- filter(one, ID != "182461")
+  one <- one %>% bind_rows(oneid) %>% 
+    arrange(ID, DateTime)
+  ## and for 182461 
+  oneid <- filter(one, ID == "205286" & year != "2021")
+  one <- filter(one, ID != "205286")
+  one <- one %>% bind_rows(oneid) %>% 
+    arrange(ID, DateTime)
   
   # dates <- c('March', 'June', 'September', 'December') # for display on X axis
   dates <- c('September', 'December', 'March', 'June') # shift year
   
   ## Demarcatae start and ends
   startends <- one %>% group_by(ID, destination) %>% arrange(DateTime) %>% summarise(
+    first_DT = first(DateTime),
+    last_DT = last(DateTime),
     start = yday(first(DateTime)),
     end   = yday(last(DateTime))
     # start = first(doy),
@@ -147,9 +168,21 @@ for(y in seq_along(datatypes)){
   ## shift yr to start on July 1st
   startends$doy2 <- ifelse(startends$doy>182, startends$doy - 182, startends$doy + 182)
   
+  ## add point where there is only data from one day to make sure it shows up on plot
+  onex <- do.call(rbind,
+                  lapply(split(one, one$burst), function(x){
+                    if(n_distinct(x$doy2)==1){
+                      xx <- rbind(x[1,], x)
+                      xx$doy2 <- c(x$doy2[1]-1, x$doy2)
+                    } else {xx <- x}
+                    return(xx)
+                  })
+  )
+  
+  
   trckxtnts <- ggplot() +
     geom_point(data=startends, aes(x=doy2, y=ID, fill=type), color="white", size=6, pch=21) +
-    geom_line(data=one, aes(x=doy2, y=ID, group=burst, color=stage), size=5) +
+    geom_line(data=onex, aes(x=doy2, y=ID, group=burst, color=stage), size=5) +
     scale_fill_manual(values = c("red", "blue"), guide = guide_legend(reverse = TRUE)) +
     xlim(c(1,365)) + 
     theme_bw() + xlab("") +
@@ -163,11 +196,11 @@ for(y in seq_along(datatypes)){
   trckxtnts_facet
   
   ## SAVE ## ---------------------------------------
-  filename <- paste0("figures/ind_track_extents_", satfilt, "_", datatype, "X.png")
+  filename <- paste0("figures/ind_track_extents/ind_track_extents_", satfilt, "_", datatype, "X.png")
   ggsave(filename, plot=trckxtnts, width=10, height=7)
   # ggsave(paste0("figures/ind_track_extents_", satfilt, "_", "rawX.png"), plot=trckxtnts, width=10, height=7)
   
-  filename <- paste0("figures/ind_track_extents_", satfilt, "_", datatype, "_facettedX.png")
+  filename <- paste0("figures/ind_track_extents/ind_track_extents_", satfilt, "_", datatype, "_facettedX.png")
   ggsave(filename, plot=trckxtnts_facet, width=10, height=7)
   # ggsave(paste0("figures/ind_track_extents_", satfilt, "_", "raw_facettedX.png"), plot=trckxtnts_facet, width=10, height=7)
 
